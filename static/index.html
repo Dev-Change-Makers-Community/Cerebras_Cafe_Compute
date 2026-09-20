@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GPT-4.1 vs GPT OSS 120B · Live comparison</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@16..72,500;16..72,600&family=Source+Sans+3:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="masthead">
+        <p class="kicker">Live inference rehearsal</p>
+        <h1>Two models. Two providers. Same prompt.</h1>
+        <p class="lede">
+          This is a comparison of <strong>GPT-4.1 on the OpenAI API</strong> and
+          <strong>GPT OSS 120B on the Cerebras API</strong> — not the same model
+          on two hosts. Streaming is on. Measure time to first visible token and
+          total completion time here before you quote a speedup on stage.
+        </p>
+      </header>
+
+      <section class="controls" aria-label="Demo setup">
+        <div class="key-tabs" role="tablist" aria-label="API keys">
+          <button
+            class="tab is-active"
+            role="tab"
+            id="tab-openai"
+            aria-selected="true"
+            aria-controls="panel-openai"
+            data-tab="openai"
+          >
+            OpenAI Developer platform
+          </button>
+          <button
+            class="tab"
+            role="tab"
+            id="tab-cerebras"
+            aria-selected="false"
+            aria-controls="panel-cerebras"
+            data-tab="cerebras"
+          >
+            Cerebras API
+          </button>
+        </div>
+
+        <div class="key-panels">
+          <div
+            class="key-panel is-active"
+            role="tabpanel"
+            id="panel-openai"
+            aria-labelledby="tab-openai"
+            data-panel="openai"
+          >
+            <label for="openai-key">OpenAI Developer platform API key</label>
+            <div class="key-row">
+              <input
+                id="openai-key"
+                type="password"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="sk-..."
+              />
+              <button type="button" class="ghost" data-toggle-key="openai-key">Show</button>
+            </div>
+            <p class="hint">
+              Create a key at
+              <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer"
+                >platform.openai.com/api-keys</a
+              >.
+              Used only for this local GPT-4.1 request.
+            </p>
+          </div>
+
+          <div
+            class="key-panel"
+            role="tabpanel"
+            id="panel-cerebras"
+            aria-labelledby="tab-cerebras"
+            hidden
+            data-panel="cerebras"
+          >
+            <label for="cerebras-key">Cerebras API key</label>
+            <div class="key-row">
+              <input
+                id="cerebras-key"
+                type="password"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="csk-..."
+              />
+              <button type="button" class="ghost" data-toggle-key="cerebras-key">Show</button>
+            </div>
+            <p class="hint">
+              Create a key at
+              <a href="https://cloud.cerebras.ai" target="_blank" rel="noreferrer">cloud.cerebras.ai</a>.
+              Used only for this local GPT OSS 120B request.
+            </p>
+          </div>
+        </div>
+
+        <label for="prompt">Shared prompt</label>
+        <textarea id="prompt" rows="5"></textarea>
+
+        <div class="run-bar">
+          <label class="tokens">
+            Max tokens
+            <input id="max-tokens" type="number" min="200" max="4000" step="100" value="1600" />
+          </label>
+          <button id="run" type="button">Run both streams</button>
+          <button id="stop" type="button" class="ghost" hidden>Stop</button>
+        </div>
+      </section>
+
+      <section class="lanes" aria-label="Streaming comparison">
+        <article class="lane lane-openai" data-lane="openai">
+          <header>
+            <h2>GPT-4.1 · OpenAI API</h2>
+            <p class="sub">gpt-4.1 · no extra reasoning step · OpenAI Chat Completions</p>
+          </header>
+          <dl class="metrics">
+            <div>
+              <dt>First visible</dt>
+              <dd data-metric="ttft">—</dd>
+            </div>
+            <div>
+              <dt>Total time</dt>
+              <dd data-metric="total">—</dd>
+            </div>
+            <div>
+              <dt>Output tokens</dt>
+              <dd data-metric="tokens">—</dd>
+            </div>
+          </dl>
+          <pre class="output" data-output tabindex="0" aria-live="polite"></pre>
+        </article>
+
+        <article class="lane lane-cerebras" data-lane="cerebras">
+          <header>
+            <h2>GPT OSS 120B · Cerebras API</h2>
+            <p class="sub">gpt-oss-120b · advertised ~3,000 tok/s · Cerebras Chat Completions</p>
+          </header>
+          <dl class="metrics">
+            <div>
+              <dt>First visible</dt>
+              <dd data-metric="ttft">—</dd>
+            </div>
+            <div>
+              <dt>Total time</dt>
+              <dd data-metric="total">—</dd>
+            </div>
+            <div>
+              <dt>Output tokens</dt>
+              <dd data-metric="tokens">—</dd>
+            </div>
+          </dl>
+          <pre class="output" data-output tabindex="0" aria-live="polite"></pre>
+        </article>
+      </section>
+
+      <aside class="verdict" id="verdict" hidden>
+        <h2>This run</h2>
+        <p id="verdict-copy"></p>
+        <p class="disclaimer">
+          Different models are involved, so treat the gap as a measured rehearsal
+          result — not a guaranteed multiplier you can promise in a talk.
+        </p>
+      </aside>
+    </div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
