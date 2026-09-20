@@ -5,7 +5,8 @@ A local rehearsal board for two **different** model-and-provider combinations:
 | Panel label | Provider | Model | Why this pairing |
 | --- | --- | --- | --- |
 | **GPT-4.1 · OpenAI API** | [OpenAI Developer platform](https://platform.openai.com) | `gpt-4.1` | A straightforward baseline for text and code generation, without an extra reasoning step. |
-| **GPT OSS 120B · Cerebras API** | [Cerebras Inference](https://inference-docs.cerebras.ai) | `gpt-oss-120b` | The faster of the two models in Cerebras’ catalog by advertised token-generation speed — approximately 3,000 tokens/second. |
+| **GPT OSS 120B · Cerebras API** | [Cerebras Inference](https://inference-docs.cerebras.ai) | `gpt-oss-120b` (default) | The faster of the two models in Cerebras’ catalog by advertised token-generation speed — approximately 3,000 tokens/second. |
+| **Qwen 3.8 27B · Cerebras API** | [Cerebras Inference](https://inference-docs.cerebras.ai) | `qwen-3.8-27b` | Alternate Cerebras catalog model. Choose it on the Cerebras API tab. |
 
 Both sides use the **same prompt**, **streaming enabled**, and a **shared max-token cap** so output lengths stay in the same band. The UI records:
 
@@ -78,7 +79,7 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000).
 ## 4. Run the study-guide prompt
 
 1. Open the **OpenAI Developer platform** tab and paste your OpenAI key.
-2. Switch to the **Cerebras API** tab and paste your Cerebras key.
+2. Switch to the **Cerebras API** tab, paste your Cerebras key, and choose **`gpt-oss-120b`** or **`qwen-3.8-27b`**.
 3. Leave the shared prompt as:
 
    > Create a beginner-friendly study guide on Python functions. Include five key concepts with explanations, three runnable code examples, five practice exercises, and an answer key. Target approximately 800 words.

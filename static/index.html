@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@16..72,500;16..72,600&family=Source+Sans+3:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="/static/styles.css?v=2" />
   </head>
   <body>
     <div class="page">
@@ -19,9 +19,10 @@
         <h1>Two models. Two providers. Same prompt.</h1>
         <p class="lede">
           This is a comparison of <strong>GPT-4.1 on the OpenAI API</strong> and
-          <strong>GPT OSS 120B on the Cerebras API</strong> — not the same model
-          on two hosts. Streaming is on. Measure time to first visible token and
-          total completion time here before you quote a speedup on stage.
+          a <strong>Cerebras API</strong> model you choose —
+          <code>gpt-oss-120b</code> or <code>qwen-3.8-27b</code>.
+          Different models are involved. Streaming is on. Measure time to first
+          visible token and total completion time here before you quote a speedup.
         </p>
       </header>
 
@@ -96,10 +97,15 @@
               />
               <button type="button" class="ghost" data-toggle-key="cerebras-key">Show</button>
             </div>
+            <label for="cerebras-model">Cerebras model</label>
+            <select id="cerebras-model">
+              <option value="gpt-oss-120b">gpt-oss-120b · GPT OSS 120B</option>
+              <option value="qwen-3.8-27b">qwen-3.8-27b · Qwen 3.8 27B</option>
+            </select>
             <p class="hint">
               Create a key at
               <a href="https://cloud.cerebras.ai" target="_blank" rel="noreferrer">cloud.cerebras.ai</a>.
-              Used only for this local GPT OSS 120B request.
+              Used only for this local Cerebras request. Pick either catalog model.
             </p>
           </div>
         </div>
@@ -142,8 +148,8 @@
 
         <article class="lane lane-cerebras" data-lane="cerebras">
           <header>
-            <h2>GPT OSS 120B · Cerebras API</h2>
-            <p class="sub">gpt-oss-120b · advertised ~3,000 tok/s · Cerebras Chat Completions</p>
+            <h2 data-cerebras-title>GPT OSS 120B · Cerebras API</h2>
+            <p class="sub" data-cerebras-blurb>gpt-oss-120b · advertised ~3,000 tok/s · Cerebras Chat Completions</p>
           </header>
           <dl class="metrics">
             <div>
@@ -172,6 +178,6 @@
         </p>
       </aside>
     </div>
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=2"></script>
   </body>
 </html>

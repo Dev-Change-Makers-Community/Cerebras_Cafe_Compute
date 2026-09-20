@@ -9,6 +9,20 @@ const verdictEl = document.getElementById("verdict");
 const verdictCopyEl = document.getElementById("verdict-copy");
 const openaiKeyEl = document.getElementById("openai-key");
 const cerebrasKeyEl = document.getElementById("cerebras-key");
+const cerebrasModelEl = document.getElementById("cerebras-model");
+const cerebrasTitleEl = document.querySelector("[data-cerebras-title]");
+const cerebrasBlurbEl = document.querySelector("[data-cerebras-blurb]");
+
+const CEREBRAS_MODELS = {
+  "gpt-oss-120b": {
+    label: "GPT OSS 120B · Cerebras API",
+    blurb: "gpt-oss-120b · advertised ~3,000 tok/s · Cerebras Chat Completions",
+  },
+  "qwen-3.8-27b": {
+    label: "Qwen 3.8 27B · Cerebras API",
+    blurb: "qwen-3.8-27b · reasoning off · Cerebras Chat Completions",
+  },
+};
 
 const lanes = {
   openai: createLane("openai"),
@@ -19,6 +33,8 @@ let activeControllers = [];
 
 promptEl.value = DEFAULT_PROMPT;
 restoreKeys();
+restoreCerebrasModel();
+updateCerebrasPanel();
 
 document.querySelectorAll(".tab").forEach((tab) => {
   tab.addEventListener("click", () => selectTab(tab.dataset.tab));
@@ -35,6 +51,10 @@ document.querySelectorAll("[data-toggle-key]").forEach((button) => {
 
 openaiKeyEl.addEventListener("input", () => persistKey("openai", openaiKeyEl.value));
 cerebrasKeyEl.addEventListener("input", () => persistKey("cerebras", cerebrasKeyEl.value));
+cerebrasModelEl.addEventListener("change", () => {
+  sessionStorage.setItem("demo-cerebras-model", cerebrasModelEl.value);
+  updateCerebrasPanel();
+});
 
 runEl.addEventListener("click", () => {
   void runComparison();
@@ -75,6 +95,23 @@ function restoreKeys() {
   cerebrasKeyEl.value = sessionStorage.getItem("demo-key-cerebras") || "";
 }
 
+function restoreCerebrasModel() {
+  const saved = sessionStorage.getItem("demo-cerebras-model");
+  if (saved && CEREBRAS_MODELS[saved]) {
+    cerebrasModelEl.value = saved;
+  }
+}
+
+function selectedCerebrasModel() {
+  return CEREBRAS_MODELS[cerebrasModelEl.value] ? cerebrasModelEl.value : "gpt-oss-120b";
+}
+
+function updateCerebrasPanel() {
+  const spec = CEREBRAS_MODELS[selectedCerebrasModel()];
+  cerebrasTitleEl.textContent = spec.label;
+  cerebrasBlurbEl.textContent = spec.blurb;
+}
+
 function formatMs(ms) {
   if (!Number.isFinite(ms)) return "—";
   if (ms < 1000) return `${Math.round(ms)} ms`;
@@ -110,7 +147,7 @@ async function runComparison() {
   const maxTokens = Number(maxTokensEl.value) || 1600;
   const results = await Promise.all([
     streamProvider("openai", openaiKeyEl.value, prompt, maxTokens),
-    streamProvider("cerebras", cerebrasKeyEl.value, prompt, maxTokens),
+    streamProvider("cerebras", cerebrasKeyEl.value, prompt, maxTokens, selectedCerebrasModel()),
   ]);
 
   runEl.disabled = false;
@@ -118,7 +155,7 @@ async function runComparison() {
   renderVerdict(results);
 }
 
-async function streamProvider(provider, apiKey, prompt, maxTokens) {
+async function streamProvider(provider, apiKey, prompt, maxTokens, model) {
   const lane = lanes[provider];
   const controller = new AbortController();
   activeControllers.push(controller);
@@ -143,6 +180,7 @@ async function streamProvider(provider, apiKey, prompt, maxTokens) {
         provider,
         api_key: apiKey,
         prompt,
+        model: model || "",
         max_tokens: maxTokens,
       }),
     });
@@ -247,14 +285,15 @@ function renderVerdict(results) {
 
   const ttftRatio = openai.firstVisible / cerebras.firstVisible;
   const totalRatio = openai.total / cerebras.total;
-  const fasterTotal = cerebras.total < openai.total ? "Cerebras" : "OpenAI";
-  const fasterFirst = cerebras.firstVisible < openai.firstVisible ? "Cerebras" : "OpenAI";
+  const cerebrasName = CEREBRAS_MODELS[selectedCerebrasModel()].label;
+  const fasterTotal = cerebras.total < openai.total ? cerebrasName : "GPT-4.1 · OpenAI API";
+  const fasterFirst = cerebras.firstVisible < openai.firstVisible ? cerebrasName : "GPT-4.1 · OpenAI API";
 
   verdictEl.hidden = false;
   verdictCopyEl.textContent =
     `Measured on this machine, this run: first visible answer was ${fasterFirst} ` +
-    `(OpenAI ${formatMs(openai.firstVisible)} vs Cerebras ${formatMs(cerebras.firstVisible)}, ` +
+    `(OpenAI ${formatMs(openai.firstVisible)} vs ${selectedCerebrasModel()} ${formatMs(cerebras.firstVisible)}, ` +
     `${ttftRatio.toFixed(2)}×). Total completion was ${fasterTotal} ` +
-    `(OpenAI ${formatMs(openai.total)} vs Cerebras ${formatMs(cerebras.total)}, ` +
+    `(OpenAI ${formatMs(openai.total)} vs ${selectedCerebrasModel()} ${formatMs(cerebras.total)}, ` +
     `${totalRatio.toFixed(2)}×). Re-run a few times before you mention any number.`;
 }

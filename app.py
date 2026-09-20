@@ -25,6 +25,19 @@ DEFAULT_PROMPT = (
     "five practice exercises, and an answer key. Target approximately 800 words."
 )
 
+CEREBRAS_MODELS: dict[str, dict[str, str]] = {
+    "gpt-oss-120b": {
+        "label": "GPT OSS 120B · Cerebras API",
+        "blurb": "gpt-oss-120b · advertised ~3,000 tok/s · Cerebras Chat Completions",
+        "reasoning_effort": "low",
+    },
+    "qwen-3.8-27b": {
+        "label": "Qwen 3.8 27B · Cerebras API",
+        "blurb": "qwen-3.8-27b · reasoning off · Cerebras Chat Completions",
+        "reasoning_effort": "none",
+    },
+}
+
 PROVIDERS: dict[str, dict[str, Any]] = {
     "openai": {
         "label": "GPT-4.1 · OpenAI API",
@@ -33,7 +46,7 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         "env_key": "OPENAI_API_KEY",
     },
     "cerebras": {
-        "label": "GPT OSS 120B · Cerebras API",
+        "label": "Cerebras API",
         "model": "gpt-oss-120b",
         "url": "https://api.cerebras.ai/v1/chat/completions",
         "env_key": "CEREBRAS_API_KEY",
@@ -53,6 +66,7 @@ class StreamRequest(BaseModel):
     provider: str
     api_key: str = ""
     prompt: str = DEFAULT_PROMPT
+    model: str = ""
     max_tokens: int = Field(default=1600, ge=200, le=4000)
 
 
@@ -74,6 +88,7 @@ async def defaults() -> dict[str, Any]:
             }
             for key, spec in PROVIDERS.items()
         },
+        "cerebras_models": CEREBRAS_MODELS,
     }
 
 
@@ -88,10 +103,20 @@ def _resolve_key(provider: str, submitted: str) -> str:
     return key
 
 
-def _payload(provider: str, prompt: str, max_tokens: int) -> dict[str, Any]:
+def _resolve_cerebras_model(submitted: str) -> str:
+    model = (submitted or "").strip() or PROVIDERS["cerebras"]["model"]
+    if model not in CEREBRAS_MODELS:
+        raise HTTPException(
+            status_code=400,
+            detail="Unknown Cerebras model. Choose gpt-oss-120b or qwen-3.8-27b.",
+        )
+    return model
+
+
+def _payload(provider: str, prompt: str, max_tokens: int, model: str) -> dict[str, Any]:
     spec = PROVIDERS[provider]
     body: dict[str, Any] = {
-        "model": spec["model"],
+        "model": model or spec["model"],
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt.strip() or DEFAULT_PROMPT},
@@ -103,10 +128,9 @@ def _payload(provider: str, prompt: str, max_tokens: int) -> dict[str, Any]:
         body["max_completion_tokens"] = max_tokens
         body["stream_options"] = {"include_usage": True}
     else:
-        # gpt-oss-120b defaults to medium reasoning. Low keeps the visible
-        # study-guide output closer in shape to GPT-4.1 (no extra reasoning step).
+        # Keep visible study-guide output closer to GPT-4.1 (no extra reasoning step).
         body["max_tokens"] = max_tokens
-        body["reasoning_effort"] = "low"
+        body["reasoning_effort"] = CEREBRAS_MODELS[model]["reasoning_effort"]
         body["stream_options"] = {"include_usage": True}
     return body
 
@@ -130,14 +154,19 @@ def _sse(payload: dict[str, Any]) -> str:
     return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 
-async def _relay_stream(provider: str, api_key: str, prompt: str, max_tokens: int) -> AsyncIterator[str]:
+async def _relay_stream(
+    provider: str, api_key: str, prompt: str, max_tokens: int, model: str
+) -> AsyncIterator[str]:
     spec = PROVIDERS[provider]
+    label = spec["label"]
+    if provider == "cerebras":
+        label = CEREBRAS_MODELS[model]["label"]
     yield _sse(
         {
             "type": "meta",
             "provider": provider,
-            "model": spec["model"],
-            "label": spec["label"],
+            "model": model or spec["model"],
+            "label": label,
         }
     )
 
@@ -151,7 +180,7 @@ async def _relay_stream(provider: str, api_key: str, prompt: str, max_tokens: in
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
                 },
-                json=_payload(provider, prompt, max_tokens),
+                json=_payload(provider, prompt, max_tokens, model),
             ) as response:
                 if response.status_code >= 400:
                     error_body = (await response.aread()).decode("utf-8", errors="replace")
@@ -231,9 +260,12 @@ async def stream(request: StreamRequest) -> StreamingResponse:
 
     api_key = _resolve_key(provider, request.api_key)
     prompt = request.prompt.strip() or DEFAULT_PROMPT
+    model = PROVIDERS[provider]["model"]
+    if provider == "cerebras":
+        model = _resolve_cerebras_model(request.model)
 
     return StreamingResponse(
-        _relay_stream(provider, api_key, prompt, request.max_tokens),
+        _relay_stream(provider, api_key, prompt, request.max_tokens, model),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache, no-transform",
